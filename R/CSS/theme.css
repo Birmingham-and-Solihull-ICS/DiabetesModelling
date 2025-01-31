@@ -1,0 +1,234 @@
+/* ======================== */
+/* General Body Styling     */
+/* ======================== */
+body {
+    -moz-osx-font-smoothing: grayscale; /* Smooth font rendering for macOS */
+    -webkit-font-smoothing: antialiased; /* Smooth font rendering for WebKit browsers */
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box; /* Ensures consistent box sizing */
+}
+
+@import url('https://fonts.googleapis.com/css?family=Open+Sans');
+
+.opensans {
+    font-family: "Open Sans", sans-serif; /* Apply Open Sans font */
+}
+
+/* ======================== */
+/* Title Banner Styling     */
+/* ======================== */
+.quarto-title-banner {
+    display: grid; /* Use grid layout to align logo and title */
+    align-items: center; /* Vertically align the content */
+    position: relative;
+    padding: 30px 0 40px 0;
+    margin: 0;
+    background-color: #005EB8; /* NHS blue background */
+}
+
+.quarto-title-banner::before {
+    content: ''; /* Insert pseudo-element for the logo */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 16'%3E%3Cpath fill='%23fff' d='M0 0h40v16H0z'%3E%3C/path%3E%3Cpath fill='%23005eb8' d='M3.9 1.5h4.4l2.6 9h.1l1.8-9h3.3l-2.8 13H9l-2.7-9h-.1l-1.8 9H1.1M17.3 1.5h3.6l-1 4.9h4L25 1.5h3.5l-2.7 13h-3.5l1.1-5.6h-4.1l-1.2 5.6h-3.4M37.7 4.4c-.7-.3-1.6-.6-2.9-.6-1.4 0-2.5.2-2.5 1.3 0 1.8 5.1 1.2 5.1 5.1 0 3.6-3.3 4.5-6.4 4.5-1.3 0-2.9-.3-4-.7l.8-2.7c.7.4 2.1.7 3.2.7s2.8-.2 2.8-1.5c0-2.1-5.1-1.3-5.1-5 0-3.4 2.9-4.4 5.8-4.4 1.6 0 3.1.2 4 .6'%3E%3C/path%3E%3C/svg%3E");
+    background-size: 90px;
+    background-repeat: no-repeat;
+    background-color: #005EB8;
+    width: 90px;
+    height: 40px;
+    margin: 4px 0 2px 50px;
+    display: block;
+}
+
+.quarto-title h1.title {
+    color: #fff;
+    font-size: 30px;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+}
+
+.quarto-title p.subtitle {
+    margin-top: 10px;
+    font-size: 22px;
+    font-weight: 300;
+}
+
+.quarto-title.column-body .title {
+    text-align: left;
+    margin: 0;
+    padding: 0;
+}
+
+.quarto-title-meta {
+    background-color: #fff;
+    margin: 0;
+    padding: 0;
+}
+
+#title-block-header.quarto-title-block {
+    background-color: #fff;
+    padding: 0 0 10px 0;
+    margin-bottom: 0;
+}
+
+/* ======================== */
+/* Content Styling          */
+/* ======================== */
+/*#quarto-content {
+    padding: 20px;
+}*/
+
+.tab-content {
+    padding: 1em 0;
+    background-color: #fff;
+}
+
+/* ======================== */
+/* Navigation and Tabs      */
+/* ======================== */
+.panel-tabset .nav-item {
+    font-size: 16px;
+}
+
+.nav-tabs .nav-link.active,
+.nav-tabs .nav-item.show .nav-link {
+    color: #495057;
+    background-color: #fff;
+    border-color: #dee2e6 #dee2e6 #fff;
+}
+
+/* ======================== */
+/* Callouts and Captions    */
+/* ======================== */
+.figure-caption {
+    color: #373a3c;
+    font-size: 16px;
+}
+
+.callout {
+    background-color: white;
+    margin: 0.5rem 0;
+    border-radius: 0.25rem;
+}
+
+.callout-note.callout {
+    border-left-color: #005EB8;
+}
+
+.callout.callout-style-simple {
+    padding: 0.01em 0.7em;
+}
+
+.callout-caption-container {
+    color: #005EB8;
+}
+
+/* ======================== */
+/* Typography               */
+/* ======================== */
+h1, .h1 {
+    font-size: 30px;
+    font-weight: 600;
+}
+
+h2, .h2 {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+h3, .h3 {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.header-section-number {
+    color: #373a3c;
+}
+
+.title {
+    font-size: 28px;
+    font-weight: lighter;
+}
+
+/* ======================== */
+/* Buttons                  */
+/* ======================== */
+.btn-action-primary {
+    color: white;
+    background-color: #005eb8 !important;
+}
+
+.btn-action-primary:hover {
+    background-color: #ffeb3b !important;
+    color: #000 !important;
+}
+
+.btn-action {
+    min-width: 165px;
+    border-radius: 30px;
+    border: none;
+}
+
+/* ======================== */
+/* Data Table Buttons       */
+/* ======================== */
+.dt-buttons {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    padding-bottom: 0.3em;
+}
+
+/* ======================== */
+/* Footer                   */
+/* ======================== */
+
+
+/* Footer Styling */
+footer {
+    width: 100%; /* Ensure the footer spans full width */
+    margin: 0; /* Remove margins */
+    padding: 20px 0; /* Add vertical padding */
+    background-color: #FFFFFF; /* White footer background */
+    color: black; /* Text color for footer content */
+    text-align: center;
+    box-sizing: border-box;
+    position: relative; /* Ensure proper stacking context */
+}
+
+
+/* ======================== */
+/* Responsive Layout        */
+/* ======================== */
+@media (min-width: 992px) {
+    body:not(.floating):not(.docked) .page-columns.toc-left {
+        grid-template-columns: 
+            [screen-start] 1.4em 
+            [screen-start-inset] 4fr
+            [page-start] 30px 
+            [page-start-inset] minmax(0px, 220px)
+            [body-start-outset] 35px 
+            [body-start] 2em 
+            [body-content-start] minmax(500px, calc(1000px - 3em))
+            [body-content-end] 1.5em 
+            [body-end] 50px 
+            [body-end-outset] minmax(0px, 200px) 
+            [page-end-inset] 50px [page-end] 3fr 
+            [screen-end-inset] 1.5em 
+            [screen-end];
+    }
+}
+
+#quarto-sidebar-toc-left {
+    margin-top: 100px;
+    margin-left: 0;
+    margin-right: 50px;
+    margin-bottom: 0;
+}
+
+#toc-title {
+    font-size: 18px;
+    margin-bottom: 10px;
+}
