@@ -1,0 +1,654 @@
+---
+title: "Analysis of Missing Values in NDA Dataset"
+date: "`r Sys.Date()`"
+author: Siti Hassan
+date-format: "D MMMM YYYY"
+format:
+  html:
+    # Table of Contents options
+    toc: true
+    toc-depth: 3
+    toc-expand: true
+    toc-location: left
+    toc-title: Table of Contents
+    number-sections: false
+    number-depth: 3
+    # Render options
+    theme: cosmo
+    css: CSS/theme.css   # Replace with the directory of your css file (e.g., theme.css within 'CSS' folder)
+    anchor-sections: false
+    html-math-method: katex
+    # Code options
+    code-tools:
+      source: false
+      toggle: false
+      caption: none
+    code-fold: false
+    # code-summary: "Show code"
+    embed-resources: true
+    standalone: true
+    # URL options
+    link-external-icon: false
+    link-external-newwindow: true
+    # Reference options
+    citations-hover: true
+    footnotes-hover: true
+    # Callout options
+    callout-appearance: simple
+    callout-collapse: true
+    # Caption options
+    cap-location: bottom
+    # Title options
+    title-block-banner: '#005EB8'
+    backgroundcolor: '#f0f4f5'
+    # Set font
+    mainfont: 'Open Sans'
+    fig-width: 7
+    fig-height: 6
+      
+execute:
+  echo: false
+  cache: true              # Cache results
+  warning: false           # Do not include warnings in rendered output
+  error: false             # Do not include errors in the output
+  feeze: auto              # Re-compute previously generated computational output only in case their source file changes
+crossref:
+  fig-title: '**Figure**'
+  fig-labels: arabic
+include-after-body: "CSS/footer.html"
+---
+
+```{r}
+#| label: load-libraries
+#| output: false
+
+
+# Load the required library
+library(ggplot2)
+library(plotly)
+library(tidyverse)
+library(naniar)
+library(DT)
+
+```
+
+# Dataset
+
+```{r}
+#| label: load-data
+#| output: false
+
+# Read the RDS data
+data <- readRDS("../data/nda_clean.rds")
+```
+
+The National Diabetes Audit (NDA) [dataset](https://digital.nhs.uk/data-and-information/clinical-audits-and-registries/national-diabetes-audit) contains data on care processes and treatment targets for diabetes care, enabling us to measure the effectiveness of diabetes healthcare against NICE Clinical Guidelines and NICE Quality Standards in England and Wales. 
+
+This report examines the quality of the NDA dataset, focusing specifically on the distribution of missing values within it. This represents the first step in understanding the dataset before utilizing it for any modelling work. 
+
+The dataset provides a comprehensive audit of diabetes care and outcomes for patients in the Birmingham and Solihull, extracted for the 2023-24 financial year (2023-24 Q4). 
+
+
+
+```{r}
+#| label: plotting-functions
+
+create_lollipop_plot <- function(data, x_var, y_var, plot_title, xaxis_title, yaxis_title, showlegend = FALSE, horizontal = TRUE, marker_color, line_color) {
+  
+  # Convert the arguments to tidy column names
+  x_var <- rlang::as_name(rlang::ensym(x_var))
+  y_var <- rlang::as_name(rlang::ensym(y_var))
+  
+  # Dynamically process data based on orientation
+  if (horizontal) {
+    # Sort by x_var (the horizontal variable) and reverse factor levels for y_var
+    processed_data <- data %>%
+      arrange(desc(.data[[x_var]])) %>%
+      mutate(!!y_var := factor(.data[[y_var]], levels = rev(.data[[y_var]])))
+  } else {
+    # Sort by y_var (the vertical variable) and reverse factor levels for x_var
+    processed_data <- data %>%
+      arrange(desc(.data[[y_var]])) %>%
+      mutate(!!x_var := factor(.data[[x_var]], levels = rev(.data[[x_var]])))
+  }
+  
+  # Create the lollipop-style chart
+  interactive_plot <- plot_ly() %>%
+    # Add the segments (lines)
+    add_segments(
+      data = processed_data,
+      x = if (horizontal) ~0 else ~.data[[x_var]], 
+      xend = if (horizontal) ~.data[[x_var]] else ~.data[[x_var]],
+      y = if (horizontal) ~.data[[y_var]] else ~0, 
+      yend = if (horizontal) ~.data[[y_var]] else ~.data[[y_var]],
+      line = list(color = line_color),
+      hoverinfo = 'none' # No hover info for lines
+    ) %>%
+    # Add the points
+    add_markers(
+      data = processed_data,
+      x = if (horizontal) ~.data[[x_var]] else ~.data[[x_var]],
+      y = if (horizontal) ~.data[[y_var]] else ~.data[[y_var]],
+      marker = list(size = 8, color = marker_color), # Customize marker
+      hoverinfo = 'x+y' # Show x and y variables on hover
+    ) %>%
+    # Customize layout
+    layout(
+      title = plot_title,
+      xaxis = list(title = xaxis_title),
+      yaxis = list(title = yaxis_title),
+      margin = list(l = 150), # Add space for long variable names
+      showlegend = showlegend # Show/hide the legend based on input
+    )
+  
+  # Return the plot
+  return(interactive_plot)
+}
+
+```
+# Missing Values
+## Missingness in Cases
+
+This plot shows the number and percentage of missing values for each case. 
+
+
+:::: panel-tabset
+
+## # Missing
+```{r}
+
+# Summarize missing cases and group by n_miss
+missing_dt <- miss_case_summary(data) %>%
+  group_by(n_miss) %>%
+  summarise(count = n()) %>%
+  arrange(n_miss) # Ensure ascending order of n_miss
+
+# Create the bar chart
+p1 <- plot_ly(
+  data = missing_dt,
+  x = ~n_miss,       # Number of missing values
+  y = ~count,        # Count of cases
+  type = "bar",      # Bar chart
+  marker = list(color = "#45837FFF", opacity = 0.8) # Customize marker
+) %>%
+  layout(
+    title = "Distribution of Missing Data per Case",
+    xaxis = list(title = "# Missing"),   # Set x-axis title
+    yaxis = list(title = "Cases"),       # Set y-axis title
+    bargap = 0.1                         # Adjust gap between bars
+  )
+
+# Display the plot
+p1
+```
+## % Missing
+
+```{r}
+
+# Summarize missing cases and group by n_miss
+missing_dt <- miss_case_summary(data) %>%
+  group_by(n_miss) %>%
+  summarise(count = n()) %>%
+  mutate(total = sum(count),
+         pct_miss = (count/total) * 100,
+         pct_miss = round(pct_miss, 2))
+
+# Create the bar chart
+p1 <- plot_ly(
+  data = missing_dt,
+  x = ~n_miss,       # Number of missing values
+  y = ~pct_miss,        # Count of cases
+  type = "bar",      # Bar chart
+  marker = list(color = "#E5AD4FFF", opacity = 0.8) # Customize marker
+) %>%
+  layout(
+    title = "Distribution of Missing Data per Case",
+    xaxis = list(title = "# Missing"),   # Set x-axis title
+    yaxis = list(title = "Cases"),       # Set y-axis title
+    bargap = 0.1                         # Adjust gap between bars
+  )
+
+# Display the plot
+p1
+
+```
+
+## Table
+
+
+```{r}
+# Summarize missing cases and group by n_miss
+missing_dt <- miss_case_summary(data) %>%
+  group_by(n_miss) %>%
+  summarise(count = n()) %>%
+  mutate(total = sum(count),
+         pct_miss = (count/total) * 100,
+         pct_miss = round(pct_miss, 2)) %>% 
+  mutate(count = format(count, big.mark = ",")) %>% 
+  select(n_miss, count, pct_miss)
+
+datatable(missing_dt, extensions = "Buttons", 
+            options = list(paging = TRUE,
+                           scrollX=TRUE, 
+                           searching = TRUE,
+                           ordering = TRUE,
+                           dom = 'Bfrtip',
+                           buttons = c('copy', 'csv', 'excel', 'pdf'),
+                           pageLength=5, 
+                           lengthMenu=c(3,5,10) ))
+
+```
+
+::::
+
+::: {.callout-tip}
+
+# Summaries
+
+- There are **48,065 cases or rows (42.49%)** with no missing values.
+
+- There are **27,286 cases (13.22%)** with exactly 2 missing values.
+
+- The number of cases with missing values progressively decreases as the number of missing values increases.
+
+:::
+
+## Missingness in Variables
+
+This plot shows the number and percentage of missing values for each variable in the dataset. 
+
+:::: panel-tabset
+
+## # Missing
+```{r}
+#| label: plot-missingness
+
+# Create the missing data summary
+missing_dt <- miss_var_summary(data) %>%
+  mutate(
+    pct_miss = as.numeric(format(pct_miss, nsmall = 2))) # Ensure numeric for plotting
+
+
+# Create the plot
+create_lollipop_plot(
+  data = missing_dt,
+  x_var = n_miss,
+  y_var = variable,
+  plot_title = "Number of Missing Values",
+  xaxis_title = " ",
+  yaxis_title = " ",
+  horizontal = TRUE,
+  showlegend = FALSE,
+  marker_color = "#009999",
+  line_color = "grey"
+)
+
+```
+## % Missing
+
+```{r}
+
+# Create the plot
+create_lollipop_plot(
+  data = missing_dt,
+  x_var = pct_miss,
+  y_var = variable,
+  plot_title = "Percentage of Missing Values",
+  xaxis_title = " ",
+  yaxis_title = " ",
+  horizontal = TRUE,
+  showlegend = FALSE,
+  marker_color = "orange",
+  line_color = "grey"
+)
+
+
+
+```
+
+## Table
+```{r}
+#| label: table-missingness
+
+# Summarize missingness
+missing_dt <- missing_dt %>%
+  mutate(
+    pct_miss = round(as.numeric(pct_miss), 2), # Round to 2 decimal places and keep as numeric
+    n_miss = format(n_miss, big.mark = ",")    # Format n_miss with commas
+  )
+
+datatable(missing_dt, extensions = "Buttons", 
+            options = list(paging = TRUE,
+                           scrollX=TRUE, 
+                           searching = TRUE,
+                           ordering = TRUE,
+                           dom = 'Bfrtip',
+                           buttons = c('copy', 'csv', 'excel', 'pdf'),
+                           pageLength=5, 
+                           lengthMenu=c(3,5,10) ))
+
+```
+
+::::
+
+::: {.callout-tip}
+
+# Summaries
+
+- The variables with the highest number of missing values include `clean_cholesterol_value`, the corresponding `cholesterol_category`, and `statin_flag`, each having close to 40,000 missing values. These missing values may not necessary due to data quality issues but rather the absence of the respective treatment care.
+
+- Variables like `bmi_category`, `clean_bmi_value`, and `clean_diastolic_value` also exhibit a substantial number of missing values, but fewer than the top three.
+
+- Variables such as `clean_systolic_value`, `clean_mmol_hba1c_value`, and the corresponding `hba1c_mmol_category` show moderate levels of missingness.
+
+- Several demographic and clinical variables, including `ethnicity`, `smoking_category`, `diabetes_duration_category`, and others, have significantly fewer missing values.
+
+- Variables like `age`, `gender`, and `treatment targets_achieved` have little to no missingness. 
+
+
+:::
+
+## Missingness in Variables Grouped by Diabetes Type
+
+This plot shows the distribution of missing values across variables grouped by diabetes type (`Type 1`, `Type 2`, and `Other`).
+
+:::: panel-tabset
+
+## # Missing
+
+```{r}
+
+missing_dt <- data %>%
+  group_by(diabetes_type) %>%
+  miss_var_summary() %>%
+  mutate(pct_miss = round(pct_miss, 2)) # Round percentages to 2 decimal places
+
+# Create individual plots for each diabetes type
+# Type 1
+p1 <- create_lollipop_plot(
+  data = missing_dt %>% filter(diabetes_type == "Type 1"),
+  x_var = n_miss,
+  y_var = variable,
+  plot_title = NULL, # Titles will be set in the subplot layout
+  xaxis_title = NULL, # Share x-axis title across plots
+  yaxis_title = NULL,
+  horizontal = TRUE,
+  showlegend = FALSE,
+  marker_color = "orange",
+  line_color = "grey"
+)
+
+# Type 2
+p2 <- create_lollipop_plot(
+  data = missing_dt %>% filter(diabetes_type == "Type 2"),
+  x_var = n_miss,
+  y_var = variable,
+  plot_title = NULL,
+  xaxis_title = NULL,
+  yaxis_title = NULL,
+  horizontal = TRUE,
+  showlegend = FALSE,
+  marker_color = "orange",
+  line_color = "grey"
+)
+
+# Other
+p3 <- create_lollipop_plot(
+  data = missing_dt %>% filter(diabetes_type == "Other"),
+  x_var = n_miss,
+  y_var = variable,
+  plot_title = NULL,
+  xaxis_title = NULL,
+  yaxis_title = NULL,
+  horizontal = TRUE,
+  showlegend = FALSE,
+  marker_color = "orange",
+  line_color = "grey"
+)
+
+# Combine the plots into a single faceted plot
+facet_plot_combined <- subplot(
+  p1, p2, p3,
+  nrows = 1,  # Arrange plots in a single row
+  shareY = TRUE,
+  shareX = TRUE,
+  titleX = TRUE,
+  titleY = TRUE
+) %>%
+  layout(
+    title = list(
+      text = "Number of Missing Values by Diabetes Type",
+      y = 1.5  # Move the main title further up
+    ),
+    annotations = list(
+      list(x = 0.16, y = 1.02, text = "Type 1", showarrow = FALSE, xref = 'paper', yref = 'paper', font = list(size = 14)),
+      list(x = 0.50, y = 1.02, text = "Type 2", showarrow = FALSE, xref = 'paper', yref = 'paper', font = list(size = 14)),
+      list(x = 0.83, y = 1.02, text = "Other", showarrow = FALSE, xref = 'paper', yref = 'paper', font = list(size = 14))
+    ),
+    xaxis = list(title = " "),  # Set shared x-axis title
+    yaxis = list(title = " ")   # Set shared y-axis title
+  )
+
+facet_plot_combined
+
+```
+## % Missing
+
+```{r}
+
+missing_dt <- data %>%
+  group_by(diabetes_type) %>%
+  miss_var_summary() %>%
+  mutate(pct_miss = round(pct_miss, 2)) # Round percentages to 2 decimal places
+
+# Create individual plots for each diabetes type
+# Type 1
+p1 <- create_lollipop_plot(
+  data = missing_dt %>% filter(diabetes_type == "Type 1"),
+  x_var = pct_miss,
+  y_var = variable,
+  plot_title = NULL, # Titles will be set in the subplot layout
+  xaxis_title = NULL, # Share x-axis title across plots
+  yaxis_title = NULL,
+  horizontal = TRUE,
+  showlegend = FALSE,
+  marker_color = "orange",
+  line_color = "grey"
+)
+
+# Type 2
+p2 <- create_lollipop_plot(
+  data = missing_dt %>% filter(diabetes_type == "Type 2"),
+  x_var = pct_miss,
+  y_var = variable,
+  plot_title = NULL,
+  xaxis_title = NULL,
+  yaxis_title = NULL,
+  horizontal = TRUE,
+  showlegend = FALSE,
+  marker_color = "orange",
+  line_color = "grey"
+)
+
+# Other
+p3 <- create_lollipop_plot(
+  data = missing_dt %>% filter(diabetes_type == "Other"),
+  x_var = pct_miss,
+  y_var = variable,
+  plot_title = NULL,
+  xaxis_title = NULL,
+  yaxis_title = NULL,
+  horizontal = TRUE,
+  showlegend = FALSE,
+  marker_color = "orange",
+  line_color = "grey"
+)
+
+# Combine the plots into a single faceted plot
+facet_plot_combined <- subplot(
+  p1, p2, p3,
+  nrows = 1,  # Arrange plots in a single row
+  shareY = TRUE,
+  shareX = TRUE,
+  titleX = TRUE,
+  titleY = TRUE
+) %>%
+  layout(
+    title = list(
+      text = "Percentage of Missing Values by Diabetes Type",
+      y = 1.5  # Move the main title further up
+    ),
+    annotations = list(
+      list(x = 0.16, y = 1.02, text = "Type 1", showarrow = FALSE, xref = 'paper', yref = 'paper', font = list(size = 14)),
+      list(x = 0.50, y = 1.02, text = "Type 2", showarrow = FALSE, xref = 'paper', yref = 'paper', font = list(size = 14)),
+      list(x = 0.83, y = 1.02, text = "Other", showarrow = FALSE, xref = 'paper', yref = 'paper', font = list(size = 14))
+    ),
+    xaxis = list(title = " "),  # Set shared x-axis title
+    yaxis = list(title = " ")   # Set shared y-axis title
+  )
+
+facet_plot_combined
+
+```
+## Table
+
+```{r}
+missing_dt <- data %>%
+  group_by(diabetes_type) %>%
+  miss_var_summary() %>%
+  mutate(pct_miss = round(as.numeric(pct_miss), 2),
+         n_miss = format(n_miss, big.mark = ",")) # Round to 2 decimal places and keep as numeric
+
+datatable(missing_dt, extensions = "Buttons", 
+            options = list(paging = TRUE,
+                           scrollX=TRUE, 
+                           searching = TRUE,
+                           ordering = TRUE,
+                           dom = 'Bfrtip',
+                           buttons = c('copy', 'csv', 'excel', 'pdf'),
+                           pageLength=5, 
+                           lengthMenu=c(3,5,10) ))
+
+```
+
+::::
+
+::: {.callout-tip}
+
+# Summaries
+
+
+- Core demographic variables such as `age`, `gender`, and `imd_quintile` have no missingness across all diabetes types.
+
+- High missingness is observed primarily in clinical variables related to cholesterol, BMI, statin, and systolic/diastolic values.
+
+- **Type 2 diabetes** has the highest number of records but relatively lower percentages of missingness compared to `Other` and `Type 1`.
+
+
+:::
+
+## Missingness in Variables Across Patient IDs
+
+This plot visualises the missing data across patient records for all variables in the dataset.
+
+:::: panel-tabset
+
+# Matrix
+```{r}
+# Missingness across patient id
+missing_dt <- data %>% 
+  slice_sample(n = 1000) %>% 
+  mutate(across(everything(), as.character)) %>% 
+  mutate(patient_id = row_number()) %>% 
+  pivot_longer(cols = -patient_id, names_to = "variable", values_to = "value") %>% 
+  mutate(missing = ifelse(is.na(value), 1, 0)) %>% 
+  select(patient_id, variable, missing)
+
+
+plot_ly(
+  data = missing_dt,
+  x = ~patient_id,
+  y = ~variable,
+  z= ~missing,
+  type = "heatmap",
+  showscale = FALSE
+) %>%
+  layout(
+    title = "Missing Data in Variables Across Patients",
+    xaxis = list(title = "Patient ID (not shown) ", showticklabels = FALSE),
+    yaxis = list(title = " ")
+  )
+
+```
+# Table
+
+```{r}
+
+missing_dt <- data %>% 
+  slice_sample(n = 1000) %>% 
+  mutate(across(everything(), as.character)) %>% 
+  mutate(patient_id = row_number()) %>% 
+  pivot_longer(cols = -patient_id, names_to = "variable", values_to = "value") %>% 
+  mutate(missing = ifelse(is.na(value), 1, 0)) %>% 
+  select(patient_id, variable, missing)
+
+datatable(missing_dt, extensions = "Buttons", 
+            options = list(paging = TRUE,
+                           scrollX=TRUE, 
+                           searching = TRUE,
+                           ordering = TRUE,
+                           dom = 'Bfrtip',
+                           buttons = c('copy', 'csv', 'excel', 'pdf'),
+                           pageLength=5, 
+                           lengthMenu=c(3,5,10) ))
+
+```
+::::
+
+
+::: {.callout-tip}
+
+# Summaries
+
+
+- Missingness appears non-random for certain variables (e.g., clusters of missing values for clinical variables such as cholesterol-related ones). This is because some variables, such as `cholesterol_category` and `hba1c_mmol_category`, are derived variables; therefore, the distribution of missingness aligns with that of the primary variables from which they are created. However, other variables suggest that specific subgroups or conditions may systematically lack data.
+
+- Variables such as `statin_flag`, `clean_cholesterol_value`, `cholesterol_category`, and `bmi_category` show frequent and widespread 
+
+
+:::
+
+## Intersections of Missingness Amongst Variables
+
+This is an UpSet plot, which visualises the patterns of missingness, specically the combinations of missingness among variables. 
+
+The horizontal bars on the left show the number of missing values in each variable. In contrast, the vertical bars represent the size of the missing values shared among variables.
+
+The dots and connecting lines beneath the vertical bars indicate which variables' missing values overlap.
+
+:::: panel-tabset
+
+# Plot 
+
+```{r}
+
+gg_miss_upset(data)
+
+```
+
+::::
+
+::: {.callout-tip}
+
+# Summaries
+
+- The horizontal bars on the left show that the variable `clean_cholesterol_value` has the largest number of missing values across all variables. Its derived variable, `cholesterol_category`, follows the same pattern of missingness. This is followed by other variables such as `statin_flag`, `clean_bmi_value`, and the corresponding derived variable, `bmi_category`.
+
+- The largest vertical bar (~22,545 cases) represents the intersection of missing values shared between `clean_cholesterol_value` and its derived variable, `cholesterol_category`.
+
+- There are 4,826 cases where all 5 variables share missing values.
+
+- Intersections involving multiple variables have much smaller sizes compared to single-variable missing values. 
+
+
+:::
