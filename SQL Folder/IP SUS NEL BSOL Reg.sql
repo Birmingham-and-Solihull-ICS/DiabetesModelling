@@ -251,8 +251,12 @@ update			eat_reporting_BSOL.Development.DKA_SUS_IP_NEL
 set				genderDescription='Not coded'
 where			GenderCode is null
 
-
-
+/********************************************************************************************************
+31/01/2025 - Checks for NDA presence
+********************************************************************************************************/
+update			eat_reporting_BSOL.Development.DKA_SUS_IP_NEL	
+set				IsInNDADataset=1
+where			NHSNumber in (select [NHS_Number]from eat_reporting_BSOL.[Development].[DEV_PT360_HBA1C_NDA])
 /*************************************************
 Some checks for specifics or generics...
 
