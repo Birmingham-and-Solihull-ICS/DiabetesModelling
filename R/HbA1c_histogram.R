@@ -9,7 +9,7 @@ where
 DATE between '01-Apr-2022' and '31-Mar-2023'
 and AUDIT_YEAR = '202324E4'
 and VALUE is not null
-group by NHS_Number,date, [VALUE]"
+group by NHS_Number,date, [VALUE]"http://127.0.0.1:44955/graphics/plot_zoom_png?width=1449&height=1027
 
 my_dt <- dbGetQuery(con, sql1)
 
